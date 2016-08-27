@@ -4,7 +4,7 @@
   "description": "A framework for creating random data with a definite structure",
   "main": "src/drd.js",
   "repository": "https://github.com/justinoverton/definitely-random-data.git",
-  "license": "MIT",
+  "license": "Apache 2.0",
   "author": "Justin Overton (polymath.ninja)",
   "scripts": {
     "test": "./node_modules/.bin/mocha"
