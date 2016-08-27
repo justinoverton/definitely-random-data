@@ -1,0 +1,20 @@
+{
+  "name": "definitely-random-data",
+  "version": "0.1.0",
+  "description": "A framework for creating random data with a definite structure",
+  "main": "src/drd.js",
+  "repository": "https://github.com/justinoverton/definitely-random-data.git",
+  "license": "MIT",
+  "author": "Justin Overton (polymath.ninja)",
+  "scripts": {
+    "test": "./node_modules/.bin/mocha"
+  },
+  "dependencies": {
+    "seedrandom": "^2.4.2"
+  },
+  "devDependencies": {
+    "mocha": "^3.0.2",
+    "should": "^11.1.0",
+    "simple-mock": "^0.7.0"
+  }
+}
