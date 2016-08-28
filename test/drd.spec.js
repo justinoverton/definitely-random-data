@@ -1,32 +1,7 @@
 'use strict'
 
-const assert = require('assert');
-const drd = require('../src/drd');
+const drd = require('../dist/drd');
 const should = require('should');
-
-/*
-
-user.should.be.an.instanceOf(Object).and.have.property('name', 'tj');
-user.pets.should.be.instanceof(Array).and.have.lengthOf(4);
-
-user.should.have.property('name', 'tj');
-user.should.have.property('pets').with.lengthOf(4);
-
-// If the object was created with Object.create(null)
-// then it doesn't inherit `Object.prototype`, so it will not have `.should` getter
-// so you can do:
-should(user).have.property('name', 'tj');
-
-// also you can test in that way for null's
-should(null).not.be.ok();
-
-someAsyncTask(foo, function(err, result){
-  should.not.exist(err);
-  should.exist(result);
-  result.bar.should.equal(foo);
-});
-
-*/
 
 describe('DRD Explicit', function() {
   
