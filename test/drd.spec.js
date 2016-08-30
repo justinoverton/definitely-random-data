@@ -258,4 +258,58 @@ describe('DRD Fluent', function() {
     
   });
   
+  describe('Flip', function() {
+    
+    it('should work for success case', function() {
+      
+      let g = new drd.Generator();
+      
+      let rng = new drd.Prng(function() { return 0.49; });
+      
+      let l = g.literal('heads');
+      
+      l.flip(0.5, 'tails').getItem(rng).should.equal('heads');
+      
+      
+    });
+    
+    it('should work for success case non-default', function() {
+      
+      let g = new drd.Generator();
+      
+      let rng = new drd.Prng(function() { return 0.60; });
+      
+      let l = g.literal('heads');
+      
+      l.flip(0.61, 'tails').getItem(rng).should.equal('heads');
+      
+      
+    });
+    
+    it('should work for failure case', function() {
+      
+      let g = new drd.Generator();
+      
+      let rng = new drd.Prng(function() { return 0.5; });
+      
+      let l = g.literal('heads');
+      
+      l.flip(0.5, 'tails').getItem(rng).should.equal('tails');
+      
+    });
+    
+    it('should work for failure case non-default', function() {
+      
+      let g = new drd.Generator();
+      
+      let rng = new drd.Prng(function() { return 0.61; });
+      
+      let l = g.literal('heads');
+      
+      l.flip(0.61, 'tails').getItem(rng).should.equal('tails');
+      
+      
+    });
+  });
+  
 });

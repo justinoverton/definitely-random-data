@@ -16,6 +16,11 @@ class Prng {
   }
   
   getRandomFloat(min, max) {
+    if(util.isUndefined(min))
+      min = 0;
+    if(util.isUndefined(max))
+      max = 1;
+    
     return this.fn() * (max - min) + min;
   }
 }
