@@ -1,6 +1,7 @@
 'use strict'
 
 const seedrandom = require('seedrandom');
+const util = require('util');
 
 class Prng {
   
@@ -25,6 +26,10 @@ const defaults = {
 
 class Source {
   
+  get(rng) {
+    return this.getItem(rng || defaults.defaultRng);
+  }
+  
   getItem(rng) {
     throw `getItem() is not implemented on ${this.constructor.name}`;
   }
@@ -36,6 +41,18 @@ class Source {
   withRng(rng) {
     return new RngOverrideSource(this, rng);
   }
+  
+  /*
+  Wraps a source such that it will execute only if a certain probability is met.
+  It's basically a special case of repeat(0, 1). 
+  
+  repeat(0,1) is an uniform distribution of 0 or 1 and would be the same as flip() or flip(0.5).  However the 
+  result of a flip isn't necessarily an array (whereas repeat(0,1) is), and the probability is controlled
+  
+  */
+  flip(successProbability, defaultValue) {
+    return new FlipSource(this, successProbability, defaultValue);
+  }
 }
 
 class ListSource extends Source {
@@ -46,7 +63,6 @@ class ListSource extends Source {
   }
   
   getItem(rng) {
-    rng = rng || defaults.defaultRng;
     let idx = rng.getRandomInt(0, this.list.length);
     return this.list[idx];
   }
@@ -66,7 +82,7 @@ class RngOverrideSource extends Source {
   }
   
   getItem() {
-    return this.src.getItem(this.rng);
+    return this.src.get(this.rng);
   }
 }
 
@@ -81,7 +97,6 @@ class RangeSource extends Source {
   
   getItem(rng) {
     
-    rng = rng || defaults.defaultRng;  
     let ret = [];
     
     let n = 1;
@@ -90,10 +105,34 @@ class RangeSource extends Source {
     
     for(let idx=0; idx<n; idx++){
       //don't pass the possibly overriden rng down to the next level (prevents infinite overrides)
-      ret.push(this.src.getItem());
+      ret.push(this.src.get());
     }
     
     return flatten(ret);
+  }
+  
+}
+
+let FlipSource = exports.FlipSource = class FlipSource extends Source {
+  
+  constructor(src, prob, defaultValue) {
+    super();
+    this.src = src;
+    this.prob = prob || 0.5;
+    this.defaultValue = defaultValue;
+  }
+  
+  getItem(rng) {
+    
+    if(rng.getRandomFloat() < this.prob) {
+      return this.src.get();
+    }
+    
+    if(this.defaultValue && this.defaultValue instanceof Source) {
+      return this.defaultValue.get();
+    }
+    
+    return this.defaultValue;
   }
   
 }
@@ -123,7 +162,7 @@ class TokenSource extends Source {
       let token = this.tokens[i];
       
       if(token instanceof Source) {
-        ret.push(token.getItem());
+        ret.push(token.get());
       } else {
         ret.push(token);
       }
@@ -133,10 +172,120 @@ class TokenSource extends Source {
   }
 }
 
+let OneOfTokenSource = exports.OneOfTokenSource = class OneOfTokenSource extends Source {
+    constructor(tokens) {
+        super();
+        this.tokens = tokens;
+    }
+    
+    getItem(rng) {
+        let idx = rng.getRandomInt(0, this.tokens.length);
+        
+        let token = this.tokens[idx];
+        
+        if(token instanceof Source) {
+          return token.get();
+        } else {
+          return token;
+        }
+    }
+};
+
+let ObjectTokenSource = exports.ObjectTokenSource = class ObjectTokenSource extends Source {
+    constructor(obj) {
+        super();
+        this.obj = obj;
+    }
+    
+    getItem() {
+        return this.resolveValue(this.obj);
+    }
+    
+    resolveValue(token, parent) {
+        
+        if(token === null)
+            return null;
+        
+        if(util.isUndefined(token))
+            return undefined;
+        
+        if(token instanceof Source) {
+          return token.get();
+        } else if(util.isArray(token)) {
+            let ret = [];
+            
+            for(let o of token) {
+                ret.push(this.resolveValue(o, parent || ret));
+            }
+            
+            return ret;
+        } else if(util.isFunction(token)) {
+            return token(parent);  
+        } else if(util.isObject(token)) {
+            let ret = {};
+            
+            for (let key of Object.keys(token)) {
+                ret[key] = this.resolveValue(token[key], parent || ret);
+            }
+            
+            return ret;
+        }
+        
+        return token;
+    };
+}
+
+let MarkovChainSource = exports.MarkovChainSource = class MarkovChainSource extends Source {
+    constructor(obj) {
+        super();
+    }
+    
+    getItem() {
+        return this.resolveValue(this.obj);
+    }
+    
+    resolveValue(token, parent) {
+        
+        if(token === null)
+            return null;
+        
+        if(util.isUndefined(token))
+            return undefined;
+        
+        if(token instanceof Source) {
+          return token.get();
+        } else if(util.isArray(token)) {
+            let ret = [];
+            
+            for(let o of token) {
+                ret.push(this.resolveValue(o, parent || ret));
+            }
+            
+            return ret;
+        } else if(util.isFunction(token)) {
+            return token(parent);  
+        } else if(util.isObject(token)) {
+            let ret = {};
+            
+            for (let key of Object.keys(token)) {
+                ret[key] = this.resolveValue(token[key], parent || ret);
+            }
+            
+            return ret;
+        }
+        
+        return token;
+    };
+};
+
 class Generator {
   
   constructor() {
     
+  }
+  
+  seedPrng(seed) {
+    defaults.defaultRng = new Prng(seedrandom(seed));
   }
   
   literal(o) {
@@ -152,6 +301,14 @@ class Generator {
     return new ListSource(arr);
   }
   
+  oneOf() {
+      let arr = Array.prototype.slice.call(arguments, 0);
+      return new OneOfTokenSource(arr);
+  }
+  
+  map(obj) {
+      return new ObjectTokenSource(obj);
+  }
 }
 
 exports.ListSource = ListSource;
@@ -162,6 +319,4 @@ exports.RngOverrideSource = RngOverrideSource;
 exports.AbstractSource = Source;
 exports.Prng = Prng;
 exports.Defaults = defaults;
-
-
 exports.Generator = Generator;

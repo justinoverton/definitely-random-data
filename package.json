@@ -1,6 +1,6 @@
 {
   "name": "definitely-random-data",
-  "version": "0.1.3",
+  "version": "0.2.3",
   "description": "A framework for creating random data with a definite structure",
   "main": "dist/drd.js",
   "repository": "https://github.com/justinoverton/definitely-random-data.git",
